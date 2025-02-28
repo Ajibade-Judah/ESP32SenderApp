@@ -1,5 +1,9 @@
 # Welcome to your Expo app 👋
 
+Note: 
+## ESP32 Server Code
+The corresponding ESP32 code can be found in the [ESP32 Toggle Text Server repository](https://git@github.com:Ajibade-Judah/esp32-toggle-text-server.git).
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
