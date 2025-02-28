@@ -9,7 +9,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Replace with your ESP32's IP address
-  const ESP32_IP = '192.168.1.66';
+  const ESP32_IP = '000.00.0.00';
 
   useEffect(() => {
     // Send toggle state whenever it changes
