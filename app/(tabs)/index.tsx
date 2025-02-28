@@ -1,74 +1,180 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TextInput, Button, Switch, ActivityIndicator } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function App() {
+  const [text, setText] = useState('');
+  const [isToggleOn, setIsToggleOn] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Replace with your ESP32's IP address
+  const ESP32_IP = '192.168.1.66';
 
-export default function HomeScreen() {
+  useEffect(() => {
+    // Send toggle state whenever it changes
+    sendToggleState();
+  }, [isToggleOn]);
+
+  const sendToggleState = async () => {
+    try {
+      const state = isToggleOn ? 'ON' : 'OFF';
+      const response = await fetch(`http://${ESP32_IP}/toggle?state=${state}`, {
+        method: 'GET',
+      });
+      
+      if (response.ok) {
+        console.log(`Toggle state sent: ${state}`);
+        setIsConnected(true);
+      } else {
+        console.error('Failed to send toggle state');
+        setIsConnected(false);
+      }
+    } catch (error) {
+      console.error('Error sending toggle state:', error);
+      setIsConnected(false);
+    }
+  };
+
+  const sendText = async () => {
+    if (!text.trim()) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://${ESP32_IP}/text`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `message=${encodeURIComponent(text)}`,
+      });
+      
+      if (response.ok) {
+        console.log('Text sent successfully');
+        setInputText(text);
+        setText('');
+        setIsConnected(true);
+      } else {
+        console.error('Failed to send text');
+        setIsConnected(false);
+      }
+    } catch (error) {
+      console.error('Error sending text:', error);
+      setIsConnected(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <Text style={styles.title}>ESP32 Control</Text>
+      
+      <View style={styles.statusContainer}>
+        <Text>Connection Status: </Text>
+        <Text style={isConnected ? styles.connected : styles.disconnected}>
+          {isConnected ? 'Connected' : 'Disconnected'}
+        </Text>
+      </View>
+      
+      <View style={styles.controlContainer}>
+        <Text style={styles.label}>Toggle Switch:</Text>
+        <View style={styles.toggleContainer}>
+          <Switch
+            value={isToggleOn}
+            onValueChange={setIsToggleOn}
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={isToggleOn ? "#f5dd4b" : "#f4f3f4"}
+          />
+          <Text style={styles.toggleState}>{isToggleOn ? 'ON' : 'OFF'}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={text}
+          onChangeText={setText}
+          placeholder="Enter text to send"
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <Button 
+          title={isLoading ? "Sending..." : "Send"}
+          onPress={sendText}
+          disabled={isLoading || !text.trim()}
+        />
+      </View>
+      
+      <View style={styles.displayContainer}>
+        <Text style={styles.label}>Last Sent Text:</Text>
+        <Text style={styles.displayText}>{inputText || "None"}</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  connected: {
+    color: 'green',
+    fontWeight: 'bold',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  disconnected: {
+    color: 'red',
+    fontWeight: 'bold',
+  },
+  controlContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  toggleState: {
+    marginLeft: 10,
+    fontWeight: 'bold',
+  },
+  inputContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginRight: 10,
+  },
+  displayContainer: {
+    width: '100%',
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  label: {
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  displayText: {
+    fontSize: 16,
   },
 });
